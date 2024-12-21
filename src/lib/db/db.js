@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const { CONFIG } = require('../../config/config');
 
 const connect = async () => {
     try {
-        await mongoose.connect('mongodb://localhost:27017/cleaning', {
+        await mongoose.connect(CONFIG.MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000
