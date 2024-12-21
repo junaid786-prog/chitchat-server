@@ -36,7 +36,7 @@ const matchmakingSocket = (io) => {
 
 const matchUsers = async (io) => {
   while ((await redisClient.lLen(matchmakingQueue)) >= 2) {
-    const [user1, user2] = await redisClient.lpop(matchmakingQueue, 2);
+    const [user1, user2] = await redisClient.lPop(matchmakingQueue, 2);
 
     if (user1 && user2) {
       await redisClient.set(`${activeChatsKey}:${user1}`, user2);
