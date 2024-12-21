@@ -1,39 +1,31 @@
-const mongoose = require('mongoose');
-const joi = require('joi');
-const bcrypt = require('bcryptjs');
+// src/models/user.model.js
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    role: { type: String, enum: ['Super', 'Admin', 'Agent'], default: 'Agent' },
-}, { timestamps: true })
+const userSchema = new mongoose.Schema(
+  {
+    username: { type: String, unique: true, sparse: true }, // Optional for registered users
+    email: { type: String, unique: true, sparse: true }, // Only for registered users
+    password: { type: String }, // Only for registered users
+    isAnonymous: { type: Boolean, default: false }, // For anonymous users
+    premium: { type: Boolean, default: false }, // For premium features
+    role: { type: String, enum: ["User", "Admin"], default: "User" }, // Role-based access
+  },
+  { timestamps: true }
+);
 
-// before saving the user, hash the password
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
+// Pre-save hook for password hashing
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
-// compare the password
+// Compare passwords
 userSchema.methods.comparePassword = async function (plainPassword) {
-    return await bcrypt.compare(plainPassword, this.password);
-}
-
-const User = mongoose.model('User', userSchema);
-function validateUser(user) {
-    const schema = joi.object({
-        name: joi.string().required(),
-        email: joi.string().email().required(),
-        password: joi.string().min(6).required(),
-        role: joi.string().valid('Super', 'Admin', 'Agent').default('Agent'),
-    });
-
-    return schema.validate(user);
-}
-
-module.exports = {
-    User,
-    validateUser
+  return bcrypt.compare(plainPassword, this.password);
 };
+
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
