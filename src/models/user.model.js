@@ -4,24 +4,22 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, unique: true, sparse: true }, // Optional for registered users
-    email: { type: String, unique: true, sparse: true }, // Only for registered users
-    password: { type: String }, // Only for registered users
-    isAnonymous: { type: Boolean, default: false }, // For anonymous users
-    premium: { type: Boolean, default: false }, // For premium features
-    role: { type: String, enum: ["User", "Admin"], default: "User" }, // Role-based access
+    username: { type: String, unique: true, sparse: true },
+    email: { type: String, unique: true, sparse: true },
+    password: { type: String },
+    isAnonymous: { type: Boolean, default: false },
+    premium: { type: Boolean, default: false },
+    role: { type: String, enum: ["User", "Admin"], default: "User" },
   },
   { timestamps: true }
 );
 
-// Pre-save hook for password hashing
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// Compare passwords
 userSchema.methods.comparePassword = async function (plainPassword) {
   return bcrypt.compare(plainPassword, this.password);
 };

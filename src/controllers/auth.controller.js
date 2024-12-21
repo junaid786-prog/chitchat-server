@@ -1,98 +1,78 @@
-const Joi = require("joi");
-const { User } = require("../models/user.model");
-const { ValidationError, APIError } = require("../utils/ApiError");
-const { CatchAsync } = require("../utils/CatchAsync");
+// src/controllers/auth.controller.js
+const User = require("../models/user.model");
 const { generateToken } = require("../utils/tokens");
-const { registerSchema, loginSchema } = require("../lib/schema");
+const { CatchAsync } = require("../utils/CatchAsync");
+const Joi = require("joi");
 
 const AuthController = {
-    login: CatchAsync(async (req, res) => {
-        const { error, value: data } = loginSchema.validate(req.body);
-        if (error) {
-            throw new ValidationError(error.details[0].message);
-        }
+  createAnonymousSession: CatchAsync(async (req, res) => {
+    const user = new User({ isAnonymous: true });
+    await user.save();
+    const token = generateToken(user);
+    res.status(201).json({
+      status: "success",
+      token,
+      user: { id: user._id, isAnonymous: user.isAnonymous },
+    });
+  }),
 
-        const { email, password } = data;
-        const user = await User.findOne({ email });
-        if (!user) {
-            throw new APIError("User not found", 404);
-        }
+  register: CatchAsync(async (req, res) => {
+    const schema = Joi.object({
+      username: Joi.string().required(),
+      email: Joi.string().email().required(),
+      password: Joi.string().min(6).required(),
+    });
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ status: "error", message: error.details[0].message });
+    }
 
-        const validPassword = await user.comparePassword(password);
-        if (!validPassword) {
-            throw new APIError("Invalid email or password", 401);
-        }
+    const user = new User(value);
+    await user.save();
+    const token = generateToken(user);
+    res.status(201).json({
+      status: "success",
+      token,
+      user: { id: user._id, username: user.username, email: user.email },
+    });
+  }),
 
-        const token = generateToken(user.id);
-        res.status(200).json({
-            status: "success",
-            token,
-            data: user,
-        });
-    }),
+  login: CatchAsync(async (req, res) => {
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+      password: Joi.string().required(),
+    });
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ status: "error", message: error.details[0].message });
+    }
 
-    register: CatchAsync(async (req, res) => {
-        const { error, value: data } = registerSchema.validate(req.body);
-        if (error) {
-            throw new ValidationError(error.details[0].message);
-        }
+    const { email, password } = value;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ status: "error", message: "User not found" });
+    }
 
-        const user = new User(data);
-        await user.save();
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).json({ status: "error", message: "Invalid email or password" });
+    }
 
-        res.status(201).json({
-            status: "success",
-            data: user,
-        });
-    }),
+    const token = generateToken(user);
+    res.status(200).json({
+      status: "success",
+      token,
+      user: { id: user._id, username: user.username, email: user.email },
+    });
+  }),
 
-    getProfile: CatchAsync(async (req, res) => {
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            throw new APIError("User not found", 404);
-        }
-
-        res.status(200).json({
-            status: "success",
-            data: user,
-        });
-
-    }),
-    
-    changePassword: CatchAsync(async (req, res) => {
-        const changePasswordSchema = Joi.object({
-            currentPassword: Joi.string().min(3).required(),
-            newPassword: Joi.string().min(6).required(),
-        });
-
-        const { error, value: data } = changePasswordSchema.validate(req.body);
-        if (error) {
-            throw new ValidationError(error.details[0].message);
-        }
-
-        const { currentPassword, newPassword } = data;
-        if (!currentPassword || !newPassword) {
-            throw new ValidationError("Old password and new password are required");
-        }
-
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            throw new ValidationError("User not found");
-        }
-
-        const validPassword = await user.comparePassword(currentPassword);
-        if (!validPassword) {
-            throw new ValidationError("Invalid old password");
-        }
-
-        user.password = newPassword;
-        await user.save();
-
-        res.status(200).json({
-            status: "success",
-            message: "Password changed successfully",
-        });
-    })
+  getProfile: CatchAsync(async (req, res) => {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ status: "error", message: "User not found" });
+    }
+    res.status(200).json({ status: "success", user });
+  }),
 };
 
 module.exports = AuthController;
