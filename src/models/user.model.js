@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     isAnonymous: { type: Boolean, default: false },
     premium: { type: Boolean, default: false },
     role: { type: String, enum: ["User", "Admin"], default: "User" },
+    gender: { type: String, enum: [0, 1, 2], default: 0 }, // 0: Not specified, 1: Male, 2: Female
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }

@@ -6,13 +6,21 @@ const Joi = require("joi");
 
 const AuthController = {
   createAnonymousSession: CatchAsync(async (req, res) => {
-    const user = new User({ isAnonymous: true });
+    const user = new User({
+      isAnonymous: true,
+      username: `Anonymous-${Math.floor(Math.random() * 1000000)}`,
+    });
     await user.save();
-    const token = generateToken(user);
+    const token = generateToken({
+      _id: user._id,
+      isAnonymous: user.isAnonymous,
+      username: user.username,
+      premium: user.premium,
+    });
     res.status(201).json({
       status: "success",
       token,
-      user: { id: user._id, isAnonymous: user.isAnonymous },
+      user: { id: user._id, isAnonymous: user.isAnonymous, username: user.username },
     });
   }),
 

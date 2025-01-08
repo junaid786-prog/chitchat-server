@@ -50,6 +50,29 @@ const ChatController = {
       totalPages: Math.ceil(totalMessages / limit),
     });
   }),
+
+  createChat: CatchAsync(async (req, res) => {
+    const { participants } = req.body;
+
+    if (!participants || participants.length < 2) {
+      return res.status(400).json({ status: "error", message: "Participants are required." });
+    }
+
+    const chat = await Chat.create({ participants });
+
+    res.status(201).json({ status: "success", chat });
+  }),
+
+  getChatsByUser: CatchAsync(async (req, res) => {
+    const userId = req.user.id;
+
+    const chats = await Chat.find({
+      participants: { $in: [userId] },
+    }).populate("participants", "username");
+
+    res.status(200).json({ status: "success", chats });
+  }),
+
 };
 
 module.exports = ChatController;
