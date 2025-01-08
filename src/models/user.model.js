@@ -8,9 +8,12 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true, sparse: true },
     password: { type: String },
     isAnonymous: { type: Boolean, default: false },
+    allowFriendRequest: { type: Boolean, default: false },
+    notificationSound: { type: Boolean, default: false },
+    pushNotification: { type: Boolean, default: false },
     premium: { type: Boolean, default: false },
     role: { type: String, enum: ["User", "Admin"], default: "User" },
-    gender: { type: String, enum: [0, 1, 2], default: 0 }, // 0: Not specified, 1: Male, 2: Female
+    gender: { type: String, enum: [0, 1, 2], default: 0 },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }

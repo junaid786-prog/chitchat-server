@@ -14,7 +14,8 @@ const generateToken = (user) => {
 
 const verifyToken = (token) => {
   const secret = CONFIG.JWT_SECRET || "secret";
-  return jwt.verify(token, secret);
+  const result= jwt.verify(token, secret);
+  return result;
 };
 
 module.exports = { generateToken, verifyToken };

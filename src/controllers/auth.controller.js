@@ -20,7 +20,11 @@ const AuthController = {
     res.status(201).json({
       status: "success",
       token,
-      user: { id: user._id, isAnonymous: user.isAnonymous, username: user.username },
+      user: {
+        id: user._id,
+        isAnonymous: user.isAnonymous,
+        username: user.username,
+      },
     });
   }),
 
@@ -32,7 +36,9 @@ const AuthController = {
     });
     const { error, value } = schema.validate(req.body);
     if (error) {
-      return res.status(400).json({ status: "error", message: error.details[0].message });
+      return res
+        .status(400)
+        .json({ status: "error", message: error.details[0].message });
     }
 
     const user = new User(value);
@@ -52,18 +58,24 @@ const AuthController = {
     });
     const { error, value } = schema.validate(req.body);
     if (error) {
-      return res.status(400).json({ status: "error", message: error.details[0].message });
+      return res
+        .status(400)
+        .json({ status: "error", message: error.details[0].message });
     }
 
     const { email, password } = value;
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ status: "error", message: "User not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
     }
 
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
-      return res.status(401).json({ status: "error", message: "Invalid email or password" });
+      return res
+        .status(401)
+        .json({ status: "error", message: "Invalid email or password" });
     }
 
     const token = generateToken(user);
@@ -77,9 +89,50 @@ const AuthController = {
   getProfile: CatchAsync(async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ status: "error", message: "User not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
     }
     res.status(200).json({ status: "success", user });
+  }),
+
+  updateProfile: CatchAsync(async (req, res, next) => {
+    const schema = Joi.object({
+      username: Joi.string().optional(),
+      email: Joi.string().email().optional(),
+      allowFriendRequest: Joi.boolean().optional(),
+      notificationSound: Joi.boolean().optional(),
+      pushNotification: Joi.boolean().optional(),
+      premium: Joi.boolean().optional(),
+    });
+
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      return next(new Error(error.details[0].message));
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { ...value },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return next(new Error("User not found"));
+    }
+
+    res.status(200).json({
+      status: "success",
+      user: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        allowFriendRequest: updatedUser.allowFriendRequest,
+        notificationSound: updatedUser.notificationSound,
+        pushNotification: updatedUser.pushNotification,
+        premium: updatedUser.premium,
+      },
+    });
   }),
 };
 
