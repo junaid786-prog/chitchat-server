@@ -6,9 +6,13 @@ const Joi = require("joi");
 
 const AuthController = {
   createAnonymousSession: CatchAsync(async (req, res) => {
+    const timestamp = Date.now();
+
+    const uniqueEmail = `anonymous-${timestamp}-${Math.floor(Math.random() * 100)}@gmail.com`;
     const user = new User({
       isAnonymous: true,
       username: `Anonymous-${Math.floor(Math.random() * 1000000)}`,
+      email: uniqueEmail
     });
     await user.save();
     const token = generateToken({
@@ -123,17 +127,32 @@ const AuthController = {
 
     res.status(200).json({
       status: "success",
-      user: {
-        id: updatedUser._id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        allowFriendRequest: updatedUser.allowFriendRequest,
-        notificationSound: updatedUser.notificationSound,
-        pushNotification: updatedUser.pushNotification,
-        premium: updatedUser.premium,
-      },
+      message: 'Profile Updated Successfully'
     });
   }),
+
+  changeUserName: CatchAsync(async (req, res) => {
+    const schema = Joi.object({
+      username: Joi.string().required(),
+    });
+    const { error, value } = schema.validate(req.body);
+    if (error) {
+      return res
+        .status(400)
+        .json({ status: "error", message: error.details[0].message });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+
+    const { username } = value;
+    await user.updateUsername(username);
+
+    return res.status(200).json({ status: "success", message: "username updated successfully" });
+  })
 };
 
 module.exports = AuthController;

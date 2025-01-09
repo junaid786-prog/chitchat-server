@@ -23,25 +23,45 @@ const matchmakingSocket = (io) => {
     });
 
     socket.on("disconnect", async () => {
-      await redisClient.lRem(matchmakingQueue, 0, socket.id);
-      const chatPartner = await redisClient.get(`${activeChatsKey}:${socket.id}`);
-      if (chatPartner) {
-        io.to(chatPartner).emit("chatEnded");
-        await redisClient.del(`${activeChatsKey}:${chatPartner}`);
+      try {
+        await redisClient.lRem(matchmakingQueue, 0, socket.id);
+    
+        const chatPartner = await redisClient.get(`${activeChatsKey}:${socket.id}`);
+        if (chatPartner) {
+          io.to(chatPartner).emit("chatEnded");
+    
+          await redisClient.del(`${activeChatsKey}:${socket.id}`);
+          await redisClient.del(`${activeChatsKey}:${chatPartner}`);
+    
+          await redisClient.rPush(matchmakingQueue, chatPartner);
+    
+          console.log(`Chat partner ${chatPartner} added back to the queue because ${socket.id} disconnected.`);
+        }
+    
+        console.log(`User disconnected: ${socket.id}`);
+      } catch (error) {
+        console.error(`Error handling disconnect for ${socket.id}:`, error);
       }
-      console.log(`User disconnected: ${socket.id}`);
     });
+    
+    
   });
 };
 
 const matchUsers = async (io) => {
   while ((await redisClient.lLen(matchmakingQueue)) >= 2) {
-    const [user1, user2] = await redisClient.lPop(matchmakingQueue, 2);
+    // Pop two users from the queue individually
+    const user1 = await redisClient.lPop(matchmakingQueue);
+    const user2 = await redisClient.lPop(matchmakingQueue);
+
+
 
     if (user1 && user2) {
+      // Save the chat pairing in Redis
       await redisClient.set(`${activeChatsKey}:${user1}`, user2);
       await redisClient.set(`${activeChatsKey}:${user2}`, user1);
 
+      // Emit the 'matchFound' event with the socket IDs
       io.to(user1).emit("matchFound", { chatPartner: user2 });
       io.to(user2).emit("matchFound", { chatPartner: user1 });
 
@@ -49,5 +69,7 @@ const matchUsers = async (io) => {
     }
   }
 };
+
+
 
 module.exports = matchmakingSocket;

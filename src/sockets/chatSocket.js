@@ -11,9 +11,10 @@ const chatSocket = (io) => {
       console.log(`User joined chat: ${chatId}`);
     });
 
-    socket.on("sendMessage", async ({ chatId, content, replyTo, senderId }) => {
+    socket.on("send_message", async ({ chatId, content, senderId, replyTo }) => {
       if (!content) return;
 
+      console.log(' chatId, content, senderId, replyTo', chatId, content, senderId, replyTo)
       const message = new Message({
         chat: chatId,
         sender: senderId,
@@ -23,7 +24,7 @@ const chatSocket = (io) => {
 
       await message.save();
 
-      io.to(chatId).emit("newMessage", {
+      io.to(chatId).emit("new_message", {
         message: await message.populate("sender", "username email").execPopulate(),
       });
 
