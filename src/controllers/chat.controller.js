@@ -32,9 +32,9 @@ const ChatController = {
     const { chatId } = req.params;
     const { limit = 20, page = 1 } = req.query;
     const skip = (page - 1) * limit;
+    console.log('chatId', chatId)
 
     const messages = await Message.find({ chat: chatId })
-      .sort({ createdAt: -1 }) // Retrieve the most recent messages first
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .populate("sender", "username email")
@@ -65,13 +65,19 @@ const ChatController = {
 
   getChatsByUser: CatchAsync(async (req, res) => {
     const userId = req.user.id;
-
+  
     const chats = await Chat.find({
-      participants: { $in: [userId] },
+      participants: userId,
     }).populate("participants", "username");
-
-    res.status(200).json({ status: "success", chats });
+  
+    const filteredChats = chats.map(chat => ({
+      ...chat.toObject(), 
+      participants: chat.participants.filter(participant => participant._id.toString() !== userId),
+    }));
+  
+    res.status(200).json({ status: "success", chats: filteredChats });
   }),
+  
 
 };
 

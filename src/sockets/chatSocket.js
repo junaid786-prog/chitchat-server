@@ -6,7 +6,8 @@ const chatSocket = (io) => {
   io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on("joinChat", async ({ chatId }) => {
+    socket.on("join_chat", async ({ chatId }) => {
+      console.log('user joined',chatId)
       socket.join(chatId);
       console.log(`User joined chat: ${chatId}`);
     });
@@ -14,7 +15,7 @@ const chatSocket = (io) => {
     socket.on("send_message", async ({ chatId, content, senderId, replyTo }) => {
       if (!content) return;
 
-      console.log(' chatId, content, senderId, replyTo', chatId, content, senderId, replyTo)
+
       const message = new Message({
         chat: chatId,
         sender: senderId,
@@ -25,13 +26,13 @@ const chatSocket = (io) => {
       await message.save();
 
       io.to(chatId).emit("new_message", {
-        message: await message.populate("sender", "username email").execPopulate(),
+        message: await message.populate("sender", "username email"),
       });
 
       console.log(`Message sent in chat: ${chatId}`);
     });
 
-    socket.on("leaveChat", ({ chatId }) => {
+    socket.on("leave_chat", ({ chatId }) => {
       socket.leave(chatId);
       console.log(`User left chat: ${chatId}`);
     });

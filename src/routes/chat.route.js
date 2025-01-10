@@ -6,7 +6,7 @@ const { authenticate } = require("../middelwares/auth");
 const router = express.Router();
 
 router.post("/message", authenticate, ChatController.sendMessage);
-router.get("/history/:chatId", authenticate, ChatController.getChatHistory);
+router.get("/:chatId/messages", authenticate, ChatController.getChatHistory);
 router.post("/create", authenticate, ChatController.createChat);
 router.get("/list", authenticate, ChatController.getChatsByUser);
 
