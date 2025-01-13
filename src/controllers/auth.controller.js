@@ -108,6 +108,7 @@ const AuthController = {
       notificationSound: Joi.boolean().optional(),
       pushNotification: Joi.boolean().optional(),
       premium: Joi.boolean().optional(),
+      isAnonymous:Joi.boolean().optional(),
     });
 
     const { error, value } = schema.validate(req.body);

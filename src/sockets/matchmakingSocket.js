@@ -37,7 +37,7 @@ const matchmakingSocket = (io) => {
         const userId = Object.keys(userSocketMap).find((key) => userSocketMap[key] === socket.id);
         if (!userId) return;
 
-        delete userSocketMap[userId]; // Remove from mapping
+        delete userSocketMap[userId];
         await redisClient.lRem(matchmakingQueue, 0, userId);
 
         const chatPartner = await redisClient.get(`${activeChatsKey}:${userId}`);
