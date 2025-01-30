@@ -111,6 +111,10 @@ const AuthController = {
       isAnonymous:Joi.boolean().optional(),
     });
 
+    console.log('called')
+
+
+
     const { error, value } = schema.validate(req.body);
     if (error) {
       return next(new Error(error.details[0].message));
@@ -125,6 +129,7 @@ const AuthController = {
     if (!updatedUser) {
       return next(new Error("User not found"));
     }
+
 
     res.status(200).json({
       status: "success",

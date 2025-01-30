@@ -7,8 +7,6 @@ const activeChatsKey = "activeChats";
 const userSocketMap = {}; // Map userId to socketId
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
-
     socket.on("join_chat", async ({ chatId }) => {
       console.log('user joined', chatId)
       socket.join(chatId);
