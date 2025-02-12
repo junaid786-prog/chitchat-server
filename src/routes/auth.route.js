@@ -10,5 +10,6 @@ router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 router.get("/me", authenticate, AuthController.getProfile);
 router.put("/update/profile", authenticate, AuthController.updateProfile);
+router.put("/change-username", authenticate, AuthController.changeUserName);
 
 module.exports = router;

@@ -1,18 +1,21 @@
 // src/sockets/chatSocket.js
+const redisClient = require("../lib/db/redisClient");
 const Chat = require("../models/chat.model");
 const Message = require("../models/message.model");
-
+const matchmakingQueue = "waitingQueue";
+const activeChatsKey = "activeChats";
+const userSocketMap = {}; // Map userId to socketId
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
-
-    socket.on("joinChat", async ({ chatId }) => {
+    socket.on("join_chat", async ({ chatId }) => {
+      console.log('user joined', chatId)
       socket.join(chatId);
       console.log(`User joined chat: ${chatId}`);
     });
 
-    socket.on("sendMessage", async ({ chatId, content, replyTo, senderId }) => {
+    socket.on("send_message", async ({ chatId, content, senderId, replyTo }) => {
       if (!content) return;
+
 
       const message = new Message({
         chat: chatId,
@@ -23,17 +26,37 @@ const chatSocket = (io) => {
 
       await message.save();
 
-      io.to(chatId).emit("newMessage", {
-        message: await message.populate("sender", "username email").execPopulate(),
+      io.to(chatId).emit("new_message", {
+        message: await message.populate("sender", "username email"),
       });
 
       console.log(`Message sent in chat: ${chatId}`);
     });
 
-    socket.on("leaveChat", ({ chatId }) => {
-      socket.leave(chatId);
-      console.log(`User left chat: ${chatId}`);
+    socket.on("leave_chat", async ({ chatId, userId }) => {
+      try {
+        socket.leave(chatId);
+        console.log(`User ${userId} left chat: ${chatId}`);
+
+        const chatPartner = await redisClient.get(`${activeChatsKey}:${userId}`);
+        if (chatPartner) {
+          const partnerSocketId = userSocketMap[chatPartner];
+          if (partnerSocketId) {
+            io.to(partnerSocketId).emit("chatEnded", { message: "Your chat partner has left the chat." });
+          }
+
+          await redisClient.del(`${activeChatsKey}:${userId}`);
+          await redisClient.del(`${activeChatsKey}:${chatPartner}`);
+
+          await redisClient.rPush(matchmakingQueue, chatPartner);
+
+          console.log(`Chat partner ${chatPartner} re-added to queue because ${userId} left the chat.`);
+        }
+      } catch (error) {
+        console.error(`Error handling leave_chat for chatId ${chatId} and userId ${userId}:`, error);
+      }
     });
+
 
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.id}`);
