@@ -9,9 +9,17 @@ services:
       - NODE_ENV=production
     volumes:
       - .:/usr/src/app
-  
+    networks:
+      - mynetwork
+
   redis:
     image: "redis:alpine"
     container_name: redis_db
     ports:
       - "6379:6379"
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
