@@ -26,9 +26,8 @@ const chatSocket = (io) => {
 
       await message.save();
 
-      io.to(chatId).emit("new_message", {
-        message: await message.populate("sender", "username email"),
-      });
+      let messageToSend = await message.populate("sender", "username email")
+      io.to(chatId).emit("new_message", messageToSend);
 
       console.log(`Message sent in chat: ${chatId}`);
     });
