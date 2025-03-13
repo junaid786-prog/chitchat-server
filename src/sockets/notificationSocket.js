@@ -3,7 +3,7 @@ const Notification = require("../models/notification.model");
 
 const notificationSocket = (io) => {
   io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`NOTIFICATION::User connected: ${socket.id}`);
 
     socket.on("sendNotification", async ({ userId, type, content }) => {
       const notification = new Notification({ user: userId, type, content });

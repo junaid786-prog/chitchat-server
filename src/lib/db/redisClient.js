@@ -6,6 +6,10 @@ const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => console.error("Redis Client Error:", err));
-redisClient.connect();
+redisClient.connect().then(() => {
+  console.log("Redis Client Connected");
+  // clear all active chats
+  redisClient.flushDb().then(() => console.log("Redis DB Cleared")).catch(console.error);
+}).catch(console.error);
 
 module.exports = redisClient;
