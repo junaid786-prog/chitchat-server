@@ -13,15 +13,19 @@ const chatSocket = (io) => {
       console.log(`User joined chat: ${chatId}`);
     });
 
-    socket.on("send_message", async ({ chatId, content, senderId, replyTo }) => {
+    socket.on("send_message", async ({ chatId, content, senderId, replyTo, link }) => {
       if (!content) return;
-
 
       const message = new Message({
         chat: chatId,
         sender: senderId,
         content,
         replyTo,
+        file: {
+          name: link ? link?.split('/').pop() : null,
+          url: link ? link : null,
+          type: link ? link?.split('.').pop() : null
+        }
       });
 
       await message.save();
@@ -48,9 +52,12 @@ const chatSocket = (io) => {
           await redisClient.del(`${activeChatsKey}:${chatPartner}`);
 
           await redisClient.rPush(matchmakingQueue, chatPartner);
-
           console.log(`Chat partner ${chatPartner} re-added to queue because ${userId} left the chat.`);
         }
+
+        let target = await Chat.findByIdAndDelete(chatId).exec();
+        console.log(`Chat ${chatId} deleted ${target}`);
+        
       } catch (error) {
         console.error(`Error handling leave_chat for chatId ${chatId} and userId ${userId}:`, error);
       }
